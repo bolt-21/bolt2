@@ -47,6 +47,34 @@ const createDefaultAdmin = async () => {
         department: "Student Activities",
         year: "1st Year",
       },
+      {
+        name: "Club Administrator",
+        username: "dbu10101015",
+        email: "clubadmin@dbu.edu.et",
+        password: "Admin1234#",
+        role: "club_admin",
+        isAdmin: false,
+        isClubAdmin: true,
+        department: "Student Affairs",
+        year: "Staff",
+      },
+      {
+        name: "Academic Affairs Officer",
+        username: "dbu10101016",
+        email: "academic.affairs@dbu.edu.et",
+        password: "Admin12345#",
+        role: "academic_affairs",
+        isAdmin: false,
+        isAcademicAffairs: true,
+        department: "Academic Affairs",
+        year: "Staff",
+        academicResponsibilities: [
+          'academic_policy_advocacy',
+          'student_academic_support',
+          'curriculum_feedback_coordination',
+          'academic_complaint_resolution'
+        ]
+      },
     ];
 
     for (const adminData of additionalAdmins) {
@@ -57,36 +85,47 @@ const createDefaultAdmin = async () => {
       if (!existingAdmin) {
         // Hash password before creating
         const hashedPassword = await bcrypt.hash(adminData.password, 12);
-        
+
         const admin = await User.create({
           ...adminData,
           password: hashedPassword
         });
-        console.log(`✅ Admin created: ${adminData.username}`);
+        console.log(`✅ Admin created: ${adminData.username} (Role: ${adminData.role})`);
       } else {
         console.log(`ℹ️ Admin already exists: ${adminData.username}`);
-        
+
         // Hash password if we're updating it
         const hashedPassword = await bcrypt.hash(adminData.password, 12);
-        
+
         // UPDATE EXISTING ADMIN to ensure proper privileges
+        const updateData = {
+          isAdmin: adminData.isAdmin || false,
+          role: adminData.role,
+          isActive: true,
+          isLocked: false,
+          loginAttempts: 0,
+          lockUntil: undefined,
+          password: hashedPassword,
+          name: adminData.name,
+          email: adminData.email,
+          department: adminData.department,
+          year: adminData.year
+        };
+
+        // Add role-specific fields
+        if (adminData.role === 'club_admin') {
+          updateData.isClubAdmin = true;
+        }
+        if (adminData.role === 'academic_affairs') {
+          updateData.isAcademicAffairs = true;
+          updateData.academicResponsibilities = adminData.academicResponsibilities || [];
+        }
+
         await User.findOneAndUpdate(
           { username: adminData.username },
-          { 
-            isAdmin: true,
-            role: 'admin',
-            isActive: true,
-            isLocked: false,
-            loginAttempts: 0,
-            lockUntil: undefined,
-            password: hashedPassword, // Update password
-            name: adminData.name, // Ensure name is correct
-            email: adminData.email, // Ensure email is correct
-            department: adminData.department,
-            year: adminData.year
-          }
+          updateData
         );
-        console.log(`✅ Admin privileges updated for: ${adminData.username}`);
+        console.log(`✅ Admin privileges updated for: ${adminData.username} (Role: ${adminData.role})`);
       }
     }
 
